@@ -90,7 +90,7 @@ namespace Globals {
 		}
 		fin.close();
 	}
-    
+
 	const static double PI = 3.1415926;
 	const static double GRAV = 982.2;  // ��/c**2
 	const static double ANGLE = PI / 2;
@@ -100,7 +100,7 @@ namespace Globals {
 	//** ���� ��������� ������� � �����
 	const static long BIFURCATION = 1;	// inner, junction
 	const static long FLOW = 2;				// boundary
-    const static long VALVE = 22;    
+    const static long VALVE = 22; 
 	const static long INCOMING = 1;
 	const static long OUTGOING = -1;
 

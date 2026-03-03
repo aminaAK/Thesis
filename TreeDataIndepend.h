@@ -13,14 +13,14 @@ namespace TreeDataIndepend {
 
 	using namespace TreeDataDepend;
 	//________________________________________________________________________
-	//					Uzel(Knot)
-	//	C - point on the coordinate plane
-	//	ID	- knot number
-	// Nou	- number of outgoing branches
-	// Nin	- number of ingoing branches
-	// IG	- type of knot
-	// TD	- task-depended knot parameter set
-	// determines the type of entry of a branch into a knot
+	//					Узел
+	//	С		- Точка на координатной плоскости
+	//	ID	- номер узла
+	// Nou	- кол-во выходящих ветвей
+	// Nin	- кол-во входящих ветвей
+	// IG	- тип узла (ветвление, вход, выход и т.п.)
+	// TD	- задача-зависимый набор параметров узла
+	// определяет тип вхождения ветви в узел (входящая или исходящая)
 	//________________________________________________________________________
 	class Vetv;
 	class Uzel {
@@ -35,17 +35,17 @@ namespace TreeDataIndepend {
 	};
 
 	//________________________________________________________________________
-	//					Branch
-	//	ID				- branch number
-	// pts				- number of points on the branch
-	// dx				- branch step
-	// len				- branch lenght
-	//	width			- branch width
-	//	Kn1, Kn2	- pointers to knots adjacent to the edge; Kn1 - beginning, Kn2 - end
-	//	VB				- the value of the vector of variables on the branch
-	// VBO				- the value of the vector of variables on the branch on the previous step
-	// TD				- task-depended branch parameter set
-	// gravity           - does gravity work ( 1 - yes, 0 - no)
+	//					Ветвь
+	//	ID				- номер ветви
+	// pts				- количество точек на ветви
+	// dx				- шаг на ветви
+	// len				- длина ветви
+	//	width			- ширина ветви
+	//	Kn1, Kn2	- указатели на прилегающие к ребру узлы; Kn1 - начало, Kn2 - конец
+	//	VB				- значение вектора переменных на ветви
+	// VBO				- значение вектора переменных на ветви на предыдущем шаге
+	// TD				- задача-зависимый набор параметров ветви
+	// gravity           - работает ли гравитация (1 или 0)
 	//________________________________________________________________________
 	class Vetv {
 	public:
@@ -57,89 +57,82 @@ namespace TreeDataIndepend {
 
 
 		// S - cross-section, u - velocity
-		vector<double> URSOB(double S,double u) const {
+		vector<double> URSOB(double S,double u, long ID, double T, long x) const {
 
 		    vector<double> output(3);       // [0] - pressure, [1] - derivative Pr, [2] - zvuk
 		    double rho_w,rho;                   //density of a wall
-
-		    rho_w = 1.0;
-		    rho = 1.0;
-            
-            //cout<<S<<' '<<ID<<" URSOB"<<endl;
-		    if (S > TD.S0){
-
-                output[0] = TD.c*TD.c*rho_w*(exp(S/TD.S0 - 1) - 1);
-                output[1] = TD.c*TD.c*rho_w*exp(S/TD.S0 - 1)/TD.S0;
-                //cout << output[0] << ' '<< " P "<<endl;
-
-		    } else {
-
-                output[0] = TD.c*TD.c*rho_w*log(abs(S/TD.S0));
-                output[1] = TD.c*TD.c*rho_w/S;
-                //cout << output[0] << ' '<< " P "<<endl;
-		    }
-
-		    output[2] = sqrt(S*output[1]/rho);
-
-		    if ( output[2] < 0.00001){
-                output[2] = 0.00001;
-                cout << "Warning! PWV is too small" << endl;
-		    }
-
-			return output;
-		}
-        vector<double> MusclePump(double S,double u, double Tcur) const {
-
-            vector<double> pump(3);       // [0] - pressure, [1] - derivative Pr, [2] - zvuk
-            double rho_w,rho, Pmax, Tstep, Pcor, PI,eps,a,PWV;                   //density of a wall
+            double  Pmax, Tstep, Pcor, PI,eps,a,PWV, Snew, b, epsi;                   //density of a wall
             PI = 3.14159;
             //Tstep = 1.0;
             Tstep = 1.33;
             rho_w = 1.0;
             rho = 1.0;
-            Pmax = 100*1333.2;
-            //Pmax = 350*1333.2; // Pmax = 10 kPa 1mmHg = 133.32 Pa 308 329 350
-            eps = 1.00;
-            a = 3; //T = 2.00
-            //eps = 0.32;// 1.33- Amina added Pmax*(-np.sin(np.pi*2.8*Tcur/Tstep+np.pi/3))
-            //a = 0.755; //1.338
-            //Pcor = Pmax*(-sin(2.5*PI*Tcur/Tstep+PI*0.29)+0.9);
-            //eps = 0.27;// 1.00 0.23
-            //a = 0.6; //1.00
-            //PWV = 100;
-            //cout<<S<<' '<<ID<<" pump"<<endl;
-            if (abs(Tcur - a) <= eps) Pcor = Pmax*exp(-(eps*eps)/(eps*eps - pow(abs(Tcur - a),2)));
-            //if (abs(Tcur - a) <= eps) Pcor = Pmax*exp(-(eps*eps)/(eps*eps - pow(abs(Tcur - a),2)))*2*eps;
+            //Pmax = 1*1333.2;
+            eps = 6.00;
+            a = 5;
+            b=4;
+            epsi=5;
+            
+            if (abs(x - b) <= epsi) Pmax = 200*1333.2*exp(-(epsi*epsi)/(epsi*epsi - pow(abs(x - b),2)));
+            else Pmax = 0;
+            
+            if (abs(T - a) <= eps) Pcor = Pmax*exp(-(eps*eps)/(eps*eps - pow(abs(T - a),2)));
             else Pcor = 0;
-            //cout<<Tcur<<endl;
-            if (S > TD.S0){
-                pump[0] = TD.c*TD.c*rho_w*(exp(S/TD.S0 - 1) - 1) - Pcor;
-                //S = TD.S0*(1 + log(1 + (pump[0] - Pcor)/(TD.c*TD.c)));
-                pump[1] = TD.c*TD.c*rho_w*exp(S/TD.S0 - 1)/TD.S0;
-                //pump[0] =  PWV * PWV *rho_w*(exp(S/TD.S0 - 1) - 1) + Pcor;
-                //pump[1] =  PWV * PWV *rho_w*exp(S/TD.S0 - 1)/TD.S0;
-                //cout << pump[0]/1333.2 << ' ' << S << " P S"<<endl;
-
-            } else {
-
-                //pump[0] = PWV *PWV *rho_w*log(abs(S/TD.S0)) + Pcor;
-                //pump[1] = PWV *PWV *rho_w/S;
-                pump[0] = TD.c*TD.c*rho_w*log(abs(S/TD.S0)) - Pcor;
-                //S = TD.S0*(exp((pump[0]-Pcor))/(TD.c*TD.c));
-                pump[1] = TD.c*TD.c*rho_w/S;
-                //cout << pump[0]/1333.2 << ' ' << S << " P S"<<endl;
+            //Pcor = 20*1333.2 * (sin(2 * PI * T / 10)+1);
+            
+		    rho_w = 1.0;
+		    rho = 1.0;
+            if (ID == 2){
+                //cout<< "s "<< S << " s0 " << TD.S0<<endl;
+                if (S > TD.S0){
+                    output[0] = TD.c*TD.c*rho_w*(exp(S/TD.S0 - 1) - 1) + Pcor;
+                    output[1] = TD.c*TD.c*rho_w*exp(S/TD.S0 - 1)/TD.S0;
+                    
+                } else {
+                    output[0] = TD.c*TD.c*rho_w*log(abs(S/TD.S0)) + Pcor;
+                    output[1] = TD.c*TD.c*rho_w/S;
+                    
+                }
             }
-
-            pump[2] = sqrt(S*pump[1]/rho);
-
-            if ( pump[2] < 0.00001){
-                pump[2] = 0.00001;
+            else {
+                //            if (S <= 0) {
+                //                cout << "URSOB: negative S = " << S << " at branch " << ID << ", point " << x << endl;
+                //                S = 1e-6;
+                //            }
+                
+                if (S > TD.S0){
+                    
+                    output[0] = TD.c*TD.c*rho_w*(exp(S/TD.S0 - 1) - 1);
+                    output[1] = TD.c*TD.c*rho_w*exp(S/TD.S0 - 1)/TD.S0;
+                    
+                } else {
+                    
+                    output[0] = TD.c*TD.c*rho_w*log(abs(S/TD.S0));
+                    output[1] = TD.c*TD.c*rho_w/S;
+                }
+            }
+            
+            if ( output[1] < 0){
+                cout<<"dP/dS "<< S << " at branch " << ID << ", point " << x << endl;
+            }
+            if (S <= 0) {
+                cout << "URSOB: negative S = " << S << " at branch " << ID << ", point " << x << endl;
+                S = 1e-6;
+            }
+            
+                
+            output[2] = sqrt(S*output[1]/rho);
+                
+                
+            if ( output[2] < 0.00001){
+                output[2] = 0.00001;
                 cout << "Warning! PWV is too small" << endl;
             }
+        
 
-            return pump;
-        }
-         
+			return output;
+		}
+
 
 		vector<double> FPRCH(double S,double u, long i) const {
 

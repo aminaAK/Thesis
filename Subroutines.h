@@ -54,10 +54,10 @@ namespace Subroutines {
 
 
 
-/* Sobstvennye vektora i matritsy OM, OMO
- Stroki matritsy OM - levye sobstvennye vektora
- Stolbtsy matritsy OMO - pravyye sobstvennye vektora
- Ne pereputayte gde levye, a gde pravyye*/
+  /*  Собственные вектора и матрицы OM, OMO
+   Строки матрицы ОМ - левые собственные вектора
+   Столбцы матрицы ОМО - правые собственные вектора
+        Не перепутайте где левые, а где правые */
 
     inline tuple<Matrix,Matrix> OMEGAB(vector<double> V, Zadacha& Z, double zvuk, double P, Vetv& br){
 
@@ -105,10 +105,10 @@ namespace Subroutines {
 
     /* Compatibility conditions coefficients U = a*S + b for the right side of the branch (incoming)  */
 
-    tuple<double, double> IncomingCompatibilityCoeffs(Zadacha& Z, Vetv& br)
+    tuple<double, double> IncomingCompatibilityCoeffs(Zadacha& Z, Vetv& br, long x)
     {
 
-        double P, Ps, zvuk, sigm, a, b, gamma, Tcur;
+        double P, Ps, zvuk, sigm, a, b, gamma;
 
         vector<double> out(3);
 
@@ -117,23 +117,13 @@ namespace Subroutines {
         Matrix OM(Z.Cor,Z.Cor), OMO(Z.Cor,Z.Cor), B_h(Z.Cor,Z.Cor), D_h(Z.Cor,Z.Cor);
 
         tie(OC,OF,NC,NF) =  OCNFI(Z, br);
-        Tcur = T - Z.T_last_Hbeat;
-        //cout<< Tcur << endl;
+
         V = OC;
-        //if ((br.ID == 16) or (br.ID == 17) or (br.ID == 18) or (br.ID== 23)){
-        if ((br.ID == 11) or (br.ID == 12)){
-            out = br.MusclePump(V[0],V[1],Tcur);
-            P = out[0];
-            Ps = out[1];
-            zvuk = out[2];
-            //cout << br.ID<<"incoming" <<endl;
-        }
-        else {
-            out = br.URSOB(V[0],V[1]);
-            P = out[0];
-            Ps = out[1];
-            zvuk = out[2];
-        }
+
+        out = br.URSOB(V[0],V[1], br.ID, T, x);
+        P = out[0];
+        Ps = out[1];
+        zvuk = out[2];
 
         gamma = 1; // not used here, we only need S
 
@@ -142,13 +132,12 @@ namespace Subroutines {
         FPR = br.FPRCH(V[0],V[1],br.pts - 1);
 
         sigm = S[1]*dt/br.dx;
-        //cout<<"sigm="<<sigm<<endl;
 
         a = (-1)*OM(1,0)/OM(1,1);
 
         if (a > 0)
         {
-         cout << "Error, a > 0 for incoming BR.ID " << br.ID<< endl;
+         cout << "Error, a > 0 for incoming "<< endl;
         }
 
         b = (OC[1] + sigm*NF[1] - a*(OC[0] + sigm*NF[0]) + FPR[1]*dt - a*FPR[0]*dt)/(1 + sigm);
@@ -159,10 +148,10 @@ namespace Subroutines {
 
     /* Compatibility conditions coefficients U = a*S + b for the left side of the branch (outgoing)  */
 
-    tuple<double, double> OutgoingCompatibilityCoeffs (Zadacha& Z, Vetv& br)
+    tuple<double, double> OutgoingCompatibilityCoeffs (Zadacha& Z, Vetv& br, long x)
     {
 
-        double P, Ps, zvuk, sigm, a, b, gamma, Tcur;
+        double P, Ps, zvuk, sigm, a, b, gamma;
 
         vector<double> out(3);
 
@@ -171,25 +160,13 @@ namespace Subroutines {
         Matrix OM(Z.Cor,Z.Cor), OMO(Z.Cor,Z.Cor), B_h(Z.Cor,Z.Cor), D_h(Z.Cor,Z.Cor);
 
         tie(OC,OF,NC,NF) =  OCNFO(Z, br);
-        Tcur = T - Z.T_last_Hbeat;
-        //cout<< Tcur << endl;
-        V = OC;
-        //if ((br.ID == 16) or (br.ID == 17) or (br.ID == 18) or (br.ID== 23)){
-        if ((br.ID == 11) or (br.ID == 12)){
-            out = br.MusclePump(V[0],V[1], Tcur);
-            P = out[0];
-            Ps = out[1];
-            zvuk = out[2];
-            //cout << br.ID<<"outgoing" <<endl;
-        }
-        else {
-            out = br.URSOB(V[0],V[1]);
-            P = out[0];
-            Ps = out[1];
-            zvuk = out[2];
-            
-        }
 
+        V = OC;
+
+        out = br.URSOB(V[0],V[1], br.ID, T,x);
+        P = out[0];
+        Ps = out[1];
+        zvuk = out[2];
 
         gamma = 1; // not used here, we only need S
 
@@ -206,8 +183,7 @@ namespace Subroutines {
 
          if (a < 0)
         {
-            cout << "Error, a < 0 for outgoing BR.ID " << br.ID<< endl;
-            
+            cout << "Error, a < 0 for outgoing "<< endl;
         }
 
         b = (OC[1] - sigm*NF[1] + a*(sigm*NF[0] - OC[0]) + FPR[1]*dt - a*FPR[0]*dt)/(1 - sigm);

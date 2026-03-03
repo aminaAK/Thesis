@@ -11,7 +11,7 @@
 //#pragma once
 //#include "TreeInit.h"
 #include "CalculationMethods.h"
-#include <chrono>
+
 //using namespace TreeInit;
 using namespace CalculationMethods;
 
@@ -59,6 +59,7 @@ int main( ) {
         //LoadMultiKnots( );
     }
     //Call WriteTreeParams(Z)
+  
 
     //------------------------- Инициализация модели сердца ------------------------
     // !!! InitHeart( );
@@ -77,11 +78,19 @@ int main( ) {
 //#define SOL
 //#ifdef SOL
     cout << "T = " << T << " , Time_calc = " << time_calc << " , dt = " << dt << endl;
+    string timefile = trim(SharedDirectory)+ "time.tres";
+    string stepsfile = trim(SharedDirectory) + "tsteps.tres";
+    ofstream ftime(timefile, ofstream::out);
+    ftime.close();
+    ofstream fsteps(stepsfile, ofstream::out);
+    fsteps.close();
 
     
     while ( ( T < time_calc ) && ( dt > 0. ) ) {
-        //cout<<TreeLst[0].B[0].VB[1][TreeLst[0].B[0].pts-1]<<" T1 "<<T<<endl;
         Smax = 0.; //Globals::Smax = 0.0;
+        //CalcEdges(Z);
+        //CalcVesselVertexes(Z);
+        //cout<<dt<<endl;
         T += dt;
         if (T > last_write){
             //cout << last_write << endl;
@@ -90,17 +99,12 @@ int main( ) {
             TDWrite(Z);
         }
         //mark1 = std::chrono::steady_clock::now();
-        //cout<<TreeLst[0].B[0].VB[1][TreeLst[0].B[0].pts-1]<<" T2 "<<T<<endl;
 
         CalcEdges(Z);
-        //cout<<"CalcEdges"<<endl;
-        //cout<<TreeLst[0].B[0].VBO[1][TreeLst[0].B[0].pts-1]<<" T3 "<<T<<endl;
 
         //mark2 = std::chrono::steady_clock::now();
 
         CalcVesselVertexes(Z);
-        //cout<<"CalcVesselVertexes"<<endl;
-        //cout<<TreeLst[0].B[0].VB[1][TreeLst[0].B[0].pts-1]<<" T4 "<<T<<endl;
 
         //mark3 = std::chrono::steady_clock::now();
 
@@ -154,12 +158,11 @@ int main( ) {
     }  // end of main time loop
 //#endif
     //----------converting results for JCNetwork-------------------
-/*#ifdef JCNetwork
+#ifdef JCNetwork
     for ( long i = 0; i < Z.Ntr; i++ ) {
         ConvertResults( TreeLst [ i ] , Z );
     }
 #endif
- */
 
     //WriteFFR(TreeLst[0] , Z);
 

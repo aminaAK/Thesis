@@ -59,65 +59,36 @@ namespace TDGranuslov {
 
         return U0;
     } */
-    double getInFlow (Zadacha& Z){//поток на входе
+    double getInFlow (Zadacha& Z){
 
-            double Qin, Tc, Tcur, Ts, Tf,freq,Tstep;
+        double Qin, Tc, Tcur, Ts, Tf, freq, Tstep;
 
-            if (T > (Z.T_last_Hbeat + Z.h_period_curr)){
+//        if (T > (Z.T_last_Hbeat + Z.h_period_curr)){
+//
+//            // new heart cycle
+//
+//            Z.T_last_Hbeat = Z.T_last_Hbeat + Z.h_period_curr;
+//            Z.N_heart_cycles += 1;
+//        }
 
-                // new heart cycle
+        Tc = 60/Z.HR;
+        Tcur = T ;
+        Ts = 0;
+        //Ts = 0.2*Tc;
+        Tf = 0.3;
+        Tstep = 1.33; //sec
+        freq = 1/Tstep*60; //min
 
-                Z.T_last_Hbeat = Z.T_last_Hbeat + Z.h_period_curr;
-                Z.N_heart_cycles += 1;
-            }
+        //if ((Tcur > Ts)&&(Tcur < Tf))
+         //   Qin = (Z.SV*PI/(2*(Tf - Ts)))*sin(PI*(Tcur - Ts)/(Tf - Ts));
+        //else
+        //    Qin = 0;
+        Qin = 0.3*exp(0.0328*freq)* (1 - exp(-3*T));
+        //Qin = 20 * sin(2 * PI * T / 10);
+        //Qin = 0.3*exp(0.0328*freq);
 
-            Tc = 60/Z.HR;
-            Tcur = T ;
-            Ts = 0;
-            //Ts = 0.2*Tc;
-            Tf = 0.3;
-            Tstep = 1.33; //sec
-            freq = 1/Tstep*60; //min
-
-            
-            /*if ((Tcur > Ts)&&(Tcur < Tf))
-                Qin = (Z.SV*PI/(2*(Tf - Ts)))*sin(PI*(Tcur - Ts)/(Tf - Ts));
-            else
-                Qin = 0;
-             */
-           //Qin = 20*(sin(2*PI*Tcur-PI*0.3)+0.8);
-           Qin = 0.3*exp(0.0328*freq);
-        /*if ((Tcur > 2)&&(Tcur < 4))
-                Qin = 5*(sin(2*PI*Tcur-PI*0.3)+0.8);
-            else
-                Qin = 0;*/
-            
-            //Qin = Z.SV/Tc*(sin(2*PI*Tcur/Tc)+0.5);
-            //cout<<"Qin "<<Qin<<endl;
-            return Qin;
+        return Qin;
     }
-
-    double VLVFunc (double S,double alf,double bet) {
-        
-        double vlvwidth,vlv;
-        vlvwidth = 590;
-        //vlv = atan(vlvwidth*(alf*S+bet));
-        //vlv = atan(vlvwidth*(alf*S+bet))*2;
-        vlv = 1/(1+exp(-vlvwidth*(alf*S+bet-0.028)));
-        //cout<< vlv<< ' '<<(alf*S+bet)<<endl;
-        return vlv;
-    }
-    double VLVFuncDer (double S,double alf,double bet) {
-        
-        double vlvwidth,vlv,v;
-        //vlvwidth = 100;
-        //vlv = vlvwidth/(1+pow(vlvwidth*(alf*S+bet),2));
-        //vlv = vlvwidth/(1+pow(vlvwidth*(alf*S+bet),2)/PI);
-        v = VLVFunc(S,alf,bet);
-        vlv = v*(1-v);
-        return vlv;
-    }
-
 
     vector<double> TDFlowToSU (Zadacha& Z , Derevo& Tr , Uzel& kn, double Qin){
 
@@ -126,16 +97,15 @@ namespace TDGranuslov {
 
         if (kn.Nou == 1){ // beginning of a branch
 
-            tie(alfa, beta) = OutgoingCompatibilityCoeffs(Z,*(kn.Bou[0]));
-            //cout<<"ain bin"<<alfa<<' '<<beta<<endl;
+            tie(alfa, beta) = OutgoingCompatibilityCoeffs(Z,*(kn.Bou[0]),0);
+
             V[1] = (beta + sqrt(beta*beta + 4*alfa*Qin))/2;
             V[0] = (- beta + sqrt(beta*beta + 4*alfa*Qin))/(2*alfa);
-            //cout<<"V "<<V[0]<<' '<<V[1]<<endl;
         }
 
         if (kn.Nin == 1){
 
-            tie(alfa, beta) = IncomingCompatibilityCoeffs(Z,*(kn.Bin[0]));
+            tie(alfa, beta) = IncomingCompatibilityCoeffs(Z,*(kn.Bin[0]),9);
 
             V[1] = (beta - sqrt(beta*beta + 4*alfa*Qin))/2;
             V[0] = (- beta - sqrt(beta*beta + 4*alfa*Qin))/(2*alfa);
@@ -154,7 +124,7 @@ namespace TDGranuslov {
         double Ps, Pcur, Func, FuncS;
         vector<double> out(3);
 
-        out = br.URSOB(Scur, br.VBO[1][br.pts - 1]);
+        out = br.URSOB(Scur, br.VBO[1][br.pts - 1], br.ID, T, br.pts - 1);
         Pcur = out[0];
         Ps = out[1];
 
@@ -167,48 +137,26 @@ namespace TDGranuslov {
         return {Func, FuncS};
 
     }
-    vector<double> CalcEndFlow (Zadacha& Z , Derevo& Tr , Vetv& br){
-        
-        vector<double> V(Z.Cor);
-        double Pout,Scur,  alfa, beta, Pcor, Tstep, Tc, Tcur,Pmax; //Tstep - period of human step
-        
-        Pout = Z.Pveins*1333.2;
-        Pcor = 0;
-    
-        //Pcor = Pmax/2*(1+sin(2*PI*Tcur/Tstep)); // external Pressure, we assume it to be 0 - Amina added
-        
-        tie(alfa,beta) = IncomingCompatibilityCoeffs(Z,br);
-        
-        Scur = br.TD.S0*(1 + log(1 + (Pout - Pcor)/(br.TD.c*br.TD.c)));
-        V[0] = Scur;
-        V[1] = alfa*Scur + beta;
-        return V;
-    }
-    // Newton's method for outlet Q = (P - Pveins)/R
 
+    // Newton's method for outlet Q = (P - Pveins)/R
     vector<double> CalcRtoSUnewt (Zadacha& Z , Derevo& Tr , Vetv& br){
 
         vector<double> V(Z.Cor);
-        double Pout, S_norm, Scur, Snew, alfa, beta, Func, FuncS, Pcor, eps, Tstep, Tc, Tcur,Pmax; //Tstep - period of human step
+        double Pout, S_norm, Scur, Snew, alfa, beta, Func, FuncS, Pcor, eps;
         long i, Nmax;
-        Tstep = 0.5;
+
         i = 0;
         Nmax = 10000;
         eps = 0.001;
-        Tc = 60/Z.HR;
-        Tcur = (T - Z.T_last_Hbeat)/Tc;
-        
-        //Pout = Z.Pveins*1333.2;
-        Pout = Z.Pveins*1333.2*0.9899;
-        Pcor = 0;
-        Pmax = 0.5*1333.2; // Pmax = 10 kPa 1mmHg = 133.32 Pa
-        //Pcor = Pmax/2*(1+sin(2*PI*Tcur/Tstep)); // external Pressure, we assume it to be 0 - Amina added
 
-        tie(alfa,beta) = IncomingCompatibilityCoeffs(Z,br);
+        Pout = Z.Pveins*1333.2;
+
+        Pcor = 0; // external Pressure, we assume it to be 0
+
+        tie(alfa,beta) = IncomingCompatibilityCoeffs(Z,br,br.pts-1);
 
         Scur = ( -beta - sqrt(beta * beta ) ) / (2. * alfa);
         Snew = br.TD.S0*(1 + log(1 + (Pout - Pcor)/(br.TD.c*br.TD.c)));
-        //cout << "Scur= " << Scur <<"b="<<beta<<"a="<<alfa<<"br="<<br.ID<< endl;
 
         /*cout << "BrID: " << br.ID << endl;
         cout << "Scur: " << Scur << "   Snew:  "<< Snew <<  endl;
@@ -246,9 +194,90 @@ namespace TDGranuslov {
 
         V[0] = Snew;
         V[1] = alfa*Snew + beta;
+
+        return V;
+    }
+    double VLVFunc (double S,double alf,double bet) {
         
+        double vlvwidth,vlv;
+        vlvwidth = 100;
+        //vlv = atan(vlvwidth*(alf*S+bet));
+        //vlv = atan(vlvwidth*(alf*S+bet))*2;
+        vlv = 1/(1+exp(-vlvwidth*(alf*S+bet-0.028)));
+        //cout<< vlv<< ' '<<(alf*S+bet)<<endl;
+        return vlv;
+    }
+    double VLVFuncDer (double S,double alf,double bet) {
+        
+        double vlvwidth,vlv,v;
+        //vlvwidth = 100;
+        //vlv = vlvwidth/(1+pow(vlvwidth*(alf*S+bet),2));
+        //vlv = vlvwidth/(1+pow(vlvwidth*(alf*S+bet),2)/PI);
+        v = VLVFunc(S,alf,bet);
+        vlv = v*(1-v);
+        return vlv;
+    }
 
 
+    vector<double> CalcEndFlow (Zadacha& Z , Derevo& Tr , Vetv& br){
+        
+        vector<double> V(Z.Cor);
+        double Pout,Scur,  alfa, beta, Pcor, Tstep, Tc, Tcur,Pmax,a,b; //Tstep - period of human step
+        
+        Pout = Z.Pveins*1333.2;
+        Pcor = 0;
+
+        //Pcor = Pmax/2*(1+sin(2*PI*Tcur/Tstep)); // external Pressure, we assume it to be 0 - Amina added
+        
+        tie(alfa,beta) = IncomingCompatibilityCoeffs(Z, br, br.pts - 1);
+        
+        //Scur = br.TD.S0*(1 + log(1 + (Pout - Pcor)/(br.TD.c*br.TD.c)));
+        //V[0] = Scur;
+        //V[1] = alfa*Scur + beta;
+        //V[0] = br.VB[0][8];
+        //V[1] = br.VB[1][8];
+        V[0]=br.VB[0][br.pts - 1];
+        V[1]=br.VB[1][br.pts - 1];
+        
+//        if (beta*beta + 4*alfa*br.VB[0][br.pts - 1]*br.VB[1][br.pts - 1] >= 0){
+//            V[0] = abs(-beta + sqrt( beta*beta + 4*alfa*br.VB[0][br.pts - 1]*br.VB[1][br.pts - 1]));
+//            V[1] = alfa*V[0]+beta;
+//        } else {
+//            V[0] = 1e-6;
+//            V[1] = alfa*V[0]+beta;
+//            
+//        }
+//        a = alfa;
+//        b = beta;
+//        double Q_prev = br.VB[0][br.pts - 2] * br.VB[1][br.pts - 2];
+//
+//            //a*S^2 + b*S - Q_prev = 0
+//        double D = b * b + 4 * a * Q_prev; 
+//        double S = 0;
+//        if (D < 0) {
+//            //S = 0;
+//            S = br.TD.S0;
+//        } else {
+//            double sqrtD = sqrt(D);
+//            double S1 = (-b + sqrtD) / (2 * a);
+//            double S2 = (-b - sqrtD) / (2 * a);
+//   
+//            if (S1 > 0 && S2 > 0) {
+//                S = (S1 < S2) ? S1 : S2;
+//                //S = S2;
+//            } else if (S1 > 0) {
+//                S = S1;
+//            } else if (S2 > 0) {
+//                S = S2;
+//            } else {
+//                
+//                S = br.TD.S0;
+//                }
+//            }
+//        V[0] = S;
+//        V[1] = a * S + b;
+        
+         
         return V;
     }
 
@@ -265,48 +294,47 @@ namespace TDGranuslov {
 
         if ((Tr.ID == PULMART)||(Tr.ID == SYSART)){
 
-            if ((kn.IG == FLOW)&&(kn.Nou == 1)&&(kn.ID != 16)){
-
-                //aorta
+            if ((kn.IG == FLOW)&&(kn.Nou == 1)){
+                /*if (kn.ID == 4){
+                    brp = kn.Bou[0];
+                    cout<<brp<<endl;
+                    idx1 = 0;
+                    idx2 = 1;
+                    Qin = 0;
+                    V[1] = 0;
+                    V[0] = (*brp).TD.S0;
+                    
+                }else{*/
+                    //aorta
                 brp = kn.Bou[0];
-
+                
                 idx1 = 0;
                 idx2 = 1;
-
+                
                 Tc = 60/Z.HR;
                 Qin = getInFlow(Z);
-
+                
                 //V[1] = getInVelocity(Z)*0.01;
                 //tie(alf, bet) = OutgoingCompatibilityCoeffs(Z,*brp);
                 //V[0] = (V[1] - bet)/alf;
-
+                
                 V = TDFlowToSU(Z, Tr, kn, Qin);
                 
             }
-            //if ((kn.IG == FLOW)&&(kn.Nin == 1)&&(kn.ID==16)){
-            if (kn.ID==16){
-
-                brp = kn.Bou[0];
-
-                idx1 = 0;
-                idx2 = 1;
-
-                Tc = 60/Z.HR;
-                Qin = 0;
-
-                //V[1] = getInVelocity(Z)*0.01;
-                //tie(alf, bet) = OutgoingCompatibilityCoeffs(Z,*brp);
-                //V[0] = (V[1] - bet)/alf;
-
-                V = TDFlowToSU(Z, Tr, kn, Qin);
-                //cout<<V[0]<<' '<<V[1]<< " S U"<< endl;
+            if ((kn.IG == FLOW)&&(kn.Nin == 1)){
                 
-            }
-            if ((kn.IG == FLOW)&&(kn.Nin == 1)&&(kn.ID != 16)){
+                brp = kn.Bin[0];
+
+                idx1 = (*brp).pts - 1;
+                idx2 = (*brp).pts - 2;
+                //V = CalcRtoSUnewt(Z, Tr, *brp);
+
+                V = CalcEndFlow(Z, Tr, *brp);
+                
 
                 //terminal artery
 
-                brp = kn.Bin[0];
+                /*brp = kn.Bin[0];
 
                 idx1 = (*brp).pts - 1;
                 idx2 = (*brp).pts - 2;
@@ -317,24 +345,20 @@ namespace TDGranuslov {
                 Tf = 0.3;
 
                 Rcor = 0;
-                V = CalcEndFlow(Z, Tr, *brp);
-                
 
-                //V = CalcRtoSUnewt(Z, Tr, *brp);
+                V = CalcRtoSUnewt(Z, Tr, *brp);*/
 
             }
             /*else {
                 brp = kn.Bin[0];
             }*/
-            
-            //cout<<idx1<<endl;
             (*brp).VB[0][idx1] = V[0];
             (*brp).VB[1][idx1] = V[1];
 
-           /* cout << "BrID: " << (*brp).ID << endl;
+            cout << "BrID: " << (*brp).ID << endl;
             cout << "Brlen: " << (*brp).len << "   BrD:  "<< (*brp).width <<  endl;
             cout << "V: " << V[0] << "  " << V[1] << endl;
-            cout << endl;*/
+            cout << endl;
 
         }
 

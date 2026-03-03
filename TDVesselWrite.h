@@ -1,16 +1,16 @@
 #include "TaskData.h"
 
 namespace TDVesselWrite {
-	using namespace TaskData;
-	using namespace Globals;
+    using namespace TaskData;
+    using namespace Globals;
 
-	void TDWrite(Zadacha& Z);
+    void TDWrite(Zadacha& Z);
 
-	inline int WriteCalcData ( Zadacha& Z) {
+    inline int WriteCalcData ( Zadacha& Z) {
 
-	    int IsDataWrite, n_wr;
+        int IsDataWrite, n_wr;
 
-	    if ( (T >= write_time)&&((last_write < 0.0000000001 )||(T - last_write > write_delta)))
+        if ( (T >= write_time)&&((last_write < 0.0000000001 )||(T - last_write > write_delta)))
             IsDataWrite = 1;
         else
             IsDataWrite = 0;
@@ -29,176 +29,163 @@ namespace TDVesselWrite {
         }
 
 
-		return IsDataWrite;
-	}
-	void TDWriteCurrentTime(string filename) {
-		ofstream fout;
-		fout.open (filename, ofstream::app);
-		fout << Globals::T << endl;
-		fout.close();
-	}
-	void TDWriteCurrentTimeSteps(string filename) {
-		ofstream fout;
-		fout.open (filename, ofstream::out);
-		fout << Globals::Nz << endl;
-		fout.close();
-	}
+        return IsDataWrite;
+    }
+    void TDWriteCurrentTime(string filename) {
+        ofstream fout;
+        fout.open (filename, ofstream::app);
+        fout << Globals::T << endl;
+        fout.close();
+    }
+    void TDWriteCurrentTimeSteps(string filename) {
+        ofstream fout;
+        fout.open (filename, ofstream::out);
+        fout << Globals::Nz << endl;
+        fout.close();
+    }
 //------- ‘ункции записи в файл задачно-зависимых переменных -------------------------
-	void WriteResultLymph ( Derevo& Tr , Zadacha& Z ) {
-		double q;
-		ofstream fout;
-		for ( int i = 0; i < Tr.Nbr; ++i ) {
-			fout.open (Tr.B[i].TD.fnameTD[0], ofstream::app);
-			for (int k = 0; k < Tr.B[i].pts; ++k) {
-				fout << Tr.B[i].VB[0][k] * Tr.B[i].VB[1][k] << " ";
-			}
-			fout << endl;
-			fout.close();
-		}
-	}
-	void WriteResultBronch ( Derevo& Tr , Zadacha& Z ) { }
-	void WriteResultArtery ( Derevo& Tr , Zadacha& Z ) { }
-	void WriteResultVein ( Derevo& Tr , Zadacha& Z ) { }
+    void WriteResultLymph ( Derevo& Tr , Zadacha& Z ) {
+        double q;
+        ofstream fout;
+        for ( int i = 0; i < Tr.Nbr; ++i ) {
+            fout.open (Tr.B[i].TD.fnameTD[0], ofstream::app);
+            for (int k = 0; k < Tr.B[i].pts; ++k) {
+                fout << Tr.B[i].VB[0][k] * Tr.B[i].VB[1][k] << " ";
+            }
+            fout << endl;
+            fout.close();
+        }
+    }
+    void WriteResultBronch ( Derevo& Tr , Zadacha& Z ) { }
+    void WriteResultArtery ( Derevo& Tr , Zadacha& Z ) { }
+    void WriteResultVein ( Derevo& Tr , Zadacha& Z ) { }
 
-	void WriteResultTD ( Derevo& Tr , Zadacha& Z ) {
-		if ( Tr.ID == LYMPHATIC ) WriteResultLymph(Tr, Z);
-		if ( ( Tr.ID == PULMART ) || ( Tr.ID == SYSART ) ) WriteResultArtery(Tr, Z);
-		if ( ( Tr.ID == PULMVEN ) || ( Tr.ID == SYSVEN ) ) WriteResultVein(Tr, Z);
-		if ( Tr.ID == BRONCHIAL ) WriteResultBronch(Tr, Z);
-	}
+    void WriteResultTD ( Derevo& Tr , Zadacha& Z ) {
+        if ( Tr.ID == LYMPHATIC ) WriteResultLymph(Tr, Z);
+        if ( ( Tr.ID == PULMART ) || ( Tr.ID == SYSART ) ) WriteResultArtery(Tr, Z);
+        if ( ( Tr.ID == PULMVEN ) || ( Tr.ID == SYSVEN ) ) WriteResultVein(Tr, Z);
+        if ( Tr.ID == BRONCHIAL ) WriteResultBronch(Tr, Z);
+    }
 
 //-------ѕодпрограмма записи в файл переменных s,u,p и прочих------------------------------
 // может работать долго, потому что вычисл€ет давление
-	void WriteResultV(Derevo& Tr , Zadacha& Z) {
-		double p, Tcur;
-		ofstream fout;
-		vector<double> out(3);
-        
-        Tcur = T - Z.T_last_Hbeat;
-		//int cur_track = 0; // если пишутс€ не все ветви
-		for ( int i = 0; i < Tr.Nbr; i++ ) {
-			/*if (Z.N_towrite) {
-				if ( i == Z.Num_towrite[cur_track] ) {
-					cur_track++;
-				} else {
-					continue;
-				}
-			}*/
-			for ( int j = 0; j < Z.Cor; ++j ) { 				// s, u
-				fout.open (Tr.B[i].TD.fnameVar[j], ofstream::app);
-				//cout << Tr.B[i].TD.fnameVar[j] << endl;
-				//cout << Tr.B[i].TD.fnameVar[Z.Cor] << endl;
-				for (int k = 0; k < Tr.B[i].pts; ++k) {
-					fout << Tr.B[i].VB[j][k] << endl;
-					//cout << Tr.B[i].VB[1][Tr.B[i].pts-1] << ' '<<i<< " writen"<< endl;
-				}
-				fout.close();
-			}
+    void WriteResultV(Derevo& Tr , Zadacha& Z) {
+        double p;
+        ofstream fout;
+        vector<double> out(3);
 
-            //if ((i == 16) or (i == 17) or (i == 18) or (i == 23)){
-            if ((i == 11) or (i == 12)){
-                fout.open (Tr.B[i].TD.fnameVar[Z.Cor], ofstream::app); // Z.Cor = 2
-                for (int k = 0; k < Tr.B[i].pts; k++) { 			// p
-                    out =  Tr.B[i].MusclePump(Tr.B[i].VB[0][k],Tr.B[i].VB[1][k],Tcur);
-                    p = out[0]/1333.2; // mmHg
-                    fout << p << endl;
+        //int cur_track = 0; // если пишутс€ не все ветви
+        for ( int i = 0; i < Tr.Nbr; i++ ) {
+            /*if (Z.N_towrite) {
+                if ( i == Z.Num_towrite[cur_track] ) {
+                    cur_track++;
+                } else {
+                    continue;
                 }
-            }
-            else {
-                fout.open (Tr.B[i].TD.fnameVar[Z.Cor], ofstream::app); // Z.Cor = 2
-                for (int k = 0; k < Tr.B[i].pts; k++) {             // p
-                    out =  Tr.B[i].URSOB(Tr.B[i].VB[0][k],Tr.B[i].VB[1][k]);
-                    p = out[0]/1333.2; // mmHg
-                    fout << p << endl;
+            }*/
+            for ( int j = 0; j < Z.Cor; ++j ) {                 // s, u
+                fout.open (Tr.B[i].TD.fnameVar[j], ofstream::app);
+                //cout << Tr.B[i].TD.fnameVar[j] << endl;
+                //cout << Tr.B[i].TD.fnameVar[Z.Cor] << endl;
+                for (int k = 0; k < Tr.B[i].pts; ++k) {
+                    fout << Tr.B[i].VB[j][k] << endl;
+                    //cout << Tr.B[i].VB[j][k] << endl;
                 }
-                    
+                fout.close();
             }
-			fout.close();
 
-			fout.open (Tr.B[i].TD.fnameVar[Z.Cor + 1], ofstream::app);
-			for (int k = 0; k < Tr.B[i].pts; k++) { 			// q
-				p = Tr.B[i].VB[0][k]*Tr.B[i].VB[1][k];
-				fout << p << endl;
-			}
-			fout.close();
 
-			fout.open (Tr.B[i].TD.fnameVar[Z.Cor + 2], ofstream::app);
-			for (int k = 0; k < Tr.B[i].pts; k++) { 			// pave
-				p = Tr.B[i].TD.Pave_next/1333.2;
-				fout << p << endl;
-			}
-			fout.close();
+            fout.open (Tr.B[i].TD.fnameVar[Z.Cor], ofstream::app); // Z.Cor = 2
+            for (int k = 0; k < Tr.B[i].pts; k++) {             // p
+                out =  Tr.B[i].URSOB(Tr.B[i].VB[0][k],Tr.B[i].VB[1][k], i,T, k);
+                p = out[0]/1333.2; // mmHg
+                fout << p << endl;
+            }
+            fout.close();
+
+            fout.open (Tr.B[i].TD.fnameVar[Z.Cor + 1], ofstream::app);
+            for (int k = 0; k < Tr.B[i].pts; k++) {             // q
+                p = Tr.B[i].VB[0][k]*Tr.B[i].VB[1][k];
+                fout << p << endl;
+            }
+            fout.close();
+
+            fout.open (Tr.B[i].TD.fnameVar[Z.Cor + 2], ofstream::app);
+            for (int k = 0; k < Tr.B[i].pts; k++) {             // pave
+                p = Tr.B[i].TD.Pave_next/1333.2;
+                fout << p << endl;
+            }
+            fout.close();
 
         }
-		//WriteResultTD(Tr , Z);
-		TDGlobals::isFirstTime = 0;
-	}
+        //WriteResultTD(Tr , Z);
+        TDGlobals::isFirstTime = 0;
+    }
 
-	void WriteBranchResultForGNUPLOT (Derevo& Tr , Zadacha& Z) {}
+    void WriteBranchResultForGNUPLOT (Derevo& Tr , Zadacha& Z) {}
 
-	void TDWrite(Zadacha& Z) {
-	//-------------------------- MATLAB output ---------------------------------
-		if ( Globals::use_MATLAB_out ) {
-			for ( int i = 0; i < Z.Ntr; ++i ) {
-				WriteResultV(TreeLst[i], Z);
-			}
-			//if ( Z.useLungs ) {
-			//	WriteResultV(BronchTree, Z);
-			//}
-			TDWriteCurrentTimeSteps(trim(SharedDirectory) + "tsteps.tres");
-			//TDWriteCurrentTime(trim(SharedDirectory) + "time.tres");
-		}
-	//-------------------------- GNUPLOT output ---------------------------------
-		/*if ( Globals::use_GNUPLOT_out ) {
-			for ( int i = 0; i < Z.Ntr; ++i ) {
-				WriteBranchResultForGNUPLOT (TreeLst[i] , Z );
-			}
-			if ( Z.useLungs ) {
-				WriteBranchResultForGNUPLOT ( BronchTree, Z );
-			}
-		}*/
-	}
+    void TDWrite(Zadacha& Z) {
+    //-------------------------- MATLAB output ---------------------------------
+        if ( Globals::use_MATLAB_out ) {
+            for ( int i = 0; i < Z.Ntr; ++i ) {
+                WriteResultV(TreeLst[i], Z);
+            }
+            //if ( Z.useLungs ) {
+            //    WriteResultV(BronchTree, Z);
+            //}
+            TDWriteCurrentTimeSteps(trim(SharedDirectory) + "tsteps.tres");
+            TDWriteCurrentTime(trim(SharedDirectory) + "time.tres");
+        }
+    //-------------------------- GNUPLOT output ---------------------------------
+        /*if ( Globals::use_GNUPLOT_out ) {
+            for ( int i = 0; i < Z.Ntr; ++i ) {
+                WriteBranchResultForGNUPLOT (TreeLst[i] , Z );
+            }
+            if ( Z.useLungs ) {
+                WriteBranchResultForGNUPLOT ( BronchTree, Z );
+            }
+        }*/
+    }
 //===========================================================================================
 //  сохранение текущих значений дл€ использовани€ в дальнейших вычислени€х
 //===========================================================================================
-	void SaveDump(Derevo& Tr , Zadacha& Z) {
-		string fnDump;
-		int LResult;
+    void SaveDump(Derevo& Tr , Zadacha& Z) {
+        string fnDump;
+        int LResult;
 
-		LResult = MAKEDIRQQ( trim( SharedDirectory ) + trim(Tr.dirname) );
-		LResult = MAKEDIRQQ( trim( SharedDirectory ) + trim(Tr.dirname) + slash + "result" );
-		fnDump = trim(SharedDirectory) + trim(Tr.dirname) + slash + "result" + slash + "tree" + trim( Achar( Ichar( "0" ) + Tr.ID ) )  +  ".dmp";
-        
-		cout << "Dump file : " << fnDump << endl;
-		ofstream fout( fnDump , ofstream::out );
+        LResult = MAKEDIRQQ( trim( SharedDirectory ) + trim(Tr.dirname) );
+        LResult = MAKEDIRQQ( trim( SharedDirectory ) + trim(Tr.dirname) + slash + "result" );
+        fnDump = trim(SharedDirectory) + trim(Tr.dirname) + slash + "result" + slash + "tree" + trim( Achar( Ichar( "0" ) + Tr.ID ) )  +  ".dmp";
+        cout << "Dump file : " << fnDump << endl;
+        ofstream fout( fnDump , ofstream::out );
 
-		fout <<  Tr.ID << endl;
-		for ( int i = 0; i < Tr.Nbr; ++i ) {
-			fout <<  Tr.B[ i ].ID << " " <<  Tr.B[ i ].pts << endl;;		// номер ветви, количество точек разбиени€
-			for ( int j = 0; j < Z.Cor; ++j ) {
-				for (int k = 0; k < Tr.B[i].pts; ++k) {
-					fout << Tr.B[i].VB[j][k] << " ";
-				}
-				fout << endl;
-			}
-			for ( int j = 0; j < Z.Cor; ++j ) {
-				for (int k = 0; k < Tr.B[i].pts; ++k) {
-					fout << Tr.B[i].VBO[j][k] << " ";
-				}
-				fout << endl;
-			}
-		}
-		fout.close();
-	}
+        fout <<  Tr.ID << endl;
+        for ( int i = 0; i < Tr.Nbr; ++i ) {
+            fout <<  Tr.B[ i ].ID << " " <<  Tr.B[ i ].pts << endl;;        // номер ветви, количество точек разбиени€
+            for ( int j = 0; j < Z.Cor; ++j ) {
+                for (int k = 0; k < Tr.B[i].pts; ++k) {
+                    fout << Tr.B[i].VB[j][k] << " ";
+                }
+                fout << endl;
+            }
+            for ( int j = 0; j < Z.Cor; ++j ) {
+                for (int k = 0; k < Tr.B[i].pts; ++k) {
+                    fout << Tr.B[i].VBO[j][k] << " ";
+                }
+                fout << endl;
+            }
+        }
+        fout.close();
+    }
 
-	void ConvertResults(Derevo& Tr , Zadacha& Z) {}
+    void ConvertResults(Derevo& Tr , Zadacha& Z) {}
 
-	/*void WriteFFR(Derevo& Tr , Zadacha& Z) {
+    /*void WriteFFR(Derevo& Tr , Zadacha& Z) {
 
-	    double Pd,Pa, FFR;
-	    long id_next, addBr;
+        double Pd,Pa, FFR;
+        long id_next, addBr;
 
-	    ofstream fou;
+        ofstream fou;
         fou.open(Tr.FFRfile);
 
 
@@ -229,5 +216,5 @@ namespace TDVesselWrite {
 
         fou.close();
 
-	}*/
+    }*/
 };
